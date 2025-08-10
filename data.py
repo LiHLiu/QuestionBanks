@@ -1,5 +1,5 @@
 from typing import List, Dict
-
+import json
 
 # 处理生成的QA语句，实现数据格式化
 def process_generated_QA(generated_QA_list):
@@ -35,3 +35,10 @@ def process_generated_QA(generated_QA_list):
                     i += 1
     
     return qa_objects
+
+
+def list_to_json(array):
+    """
+    将列表转换为JSON格式字符串
+    """
+    return json.dumps(array, ensure_ascii=False, indent=2) 
