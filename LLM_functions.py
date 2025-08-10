@@ -2,7 +2,7 @@ from dashscope import Generation
 import RAG_vector_store, data
 import os
 
-# 调用通义千问模型API
+# 调用通义千问模型API sgtqltql
 def call_qwen(user_prompt="请介绍一下通义千问模型", system_prompt = None, model="qwen-turbo", api_key=os.environ.get("DASHSCOPE_API_KEY")):
     
     messages = []
