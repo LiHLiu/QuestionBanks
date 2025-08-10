@@ -34,7 +34,7 @@ def create_vector_store(file_path):
 
     vector_store.save_local("faiss_index")
 
-    print(f"成功创建RAG向量数据库，共处理 {len(docs)} 个文档片段")
+    # print(f"成功创建RAG向量数据库，共处理 {len(docs)} 个文档片段")
 
 
 
@@ -62,7 +62,7 @@ def add_new_documents_to_vector_store(file_path):
 
     vector_store.save_local("faiss_index")
 
-    print(f"成功添加 {len(docs)} 个新文档片段")
+    # print(f"成功添加 {len(docs)} 个新文档片段")
 
 
 
