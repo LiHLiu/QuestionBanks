@@ -1,6 +1,6 @@
 from getpass import getpass
 from dashscope import Generation
-from langchain.document_loaders import PyPDFLoader, TextLoader
+from langchain.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 from langchain.embeddings import DashScopeEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -46,6 +46,10 @@ def add_new_documents_to_vector_store(file_path):
         loader = PyPDFLoader(file_path)
     elif file_path.endswith('.txt'):
         loader = TextLoader(file_path, encoding='utf-8')
+    elif file_path.endswith('.md'):
+        loader = TextLoader(file_path, encoding='utf-8')
+    elif file_path.endswith('.docx'):
+        loader = Docx2txtLoader(file_path)
     else:
         raise ValueError(f"不支持的文件类型: {file_path}")
     
