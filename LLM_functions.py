@@ -2,7 +2,7 @@ from dashscope import Generation
 import RAG_vector_store, data
 import os
 
-# 调用通义千问模型API sgtqltql
+# 调用通义千问模型API 
 def call_qwen(user_prompt="请介绍一下通义千问模型", system_prompt = None, model="qwen-turbo", api_key=os.environ.get("DASHSCOPE_API_KEY")):
     
     messages = []
@@ -75,3 +75,33 @@ def generate_QA(keyword="阿里", nums=5, model="qwen-turbo", api_key=os.environ
     
     return processed_results
 
+
+# 根据答案生成干扰选项
+def generate_options(answer, nums=3, model="qwen-turbo", api_key=os.environ.get("DASHSCOPE_API_KEY")):
+    system_prompt = f"""
+    你是一个智能选项生成助手，任务是根据用户提供的问题（Q）和正确答案（A），生成多个干扰选项。要求如下：
+    1. 干扰选项必须与正确答案相关，但不能完全相同。
+    2. 每个干扰选项应具有一定的迷惑性，避免过于明显或容易识别。
+    3. 至少生成{nums}个干扰选项，确保多样性和复杂性。
+    4. 输出格式为每个选项各一行，一共生成{nums}行的结果。
+    5. 不需要包含问题（Q）的内容，只需专注于生成干扰选项。
+    """
+
+    result = call_qwen(user_prompt=answer, system_prompt=system_prompt, model=model, api_key=api_key)
+    return result
+
+
+# 根据答案关键词挖空生成填空题
+def generate_fill_in_the_blank(QA, model="qwen-turbo", api_key=os.environ.get("DASHSCOPE_API_KEY")):
+    system_prompt = f"""
+    你是一个智能填空题生成助手，任务是根据用户提供的问题（Q）和答案（A）自动提取关键词并挖空，生成填空题。要求如下：
+    1. 根据答案提取其中的关键词挖空，并生成填空题。
+    2. 填空题应清晰明了，便于理解。
+    3. 输出格式为填空题的完整句子，其中关键词被挖空，以括号的形式空出来。
+    4. 关键词可以不止1个，但尽量不要超过3个，具体数量根据所提取的关键词数量决定的。
+    ***重要： 生成后的结果括号内部的关键词绝对不能显示，否则就是严重的答案泄漏。***
+    生成示例：阿里云的AI技术部署在（）奥运场馆中，以实现即时生成的（）高保真回放。
+    """
+    
+    result = call_qwen(user_prompt=QA, system_prompt=system_prompt, model=model, api_key=api_key)
+    return result
