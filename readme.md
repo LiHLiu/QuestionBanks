@@ -16,6 +16,7 @@ readme.md              # 项目说明文档
 data/                  # 题库原始数据（txt、md、pdf等）
 faiss_index/           # FAISS 索引文件
 question_list/         # 题目列表JSON文件
+
 ```
 
 ## 主要功能
