@@ -57,6 +57,7 @@ def show_question_lists(questions):
 
 #     return input_file_interface
 
+# 创建文件导入界面
 def create_input_file_interface():
     with gr.Blocks(title="通过路径导入RAG数据库") as interface:
         gr.Markdown("## 📂 向量数据库文档导入工具（路径版）")

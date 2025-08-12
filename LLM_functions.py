@@ -60,7 +60,7 @@ def generate_QA_once(content, model="qwen-turbo", api_key=os.environ.get("DASHSC
 
 
 # 多次循环实现QA语句生成
-def generate_QA(keyword="阿里", nums=5, model="qwen-turbo", api_key=os.environ.get("DASHSCOPE_API_KEY")):
+def generate_QA(keyword="阿里", nums=5, model="qwen-turbo", api_key=os.environ.get("DASHSCOPE_API_KEY"), question_type="QA"):
 
     contents_to_generate_QA = RAG_vector_store.search_similar_documents(keyword, k=nums)
 
