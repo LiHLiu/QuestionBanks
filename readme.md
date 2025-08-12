@@ -43,7 +43,7 @@ LICENSE					# 开源协议
 
 1. 克隆项目
 	```
-	git clone <项目地址>
+	git clone git@github.com:LiHLiu/QuestionBanks.git
 	cd QuestionBanks
 	```
 2. 安装依赖
