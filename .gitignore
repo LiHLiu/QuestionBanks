@@ -1,0 +1,6 @@
+# 忽略题库原始数据
+/data/
+# 忽略题库列表 JSON 文件
+/question_list/
+# 忽略 FAISS 索引文件
+/faiss_index/
