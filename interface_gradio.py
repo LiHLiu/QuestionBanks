@@ -1,7 +1,8 @@
 import gradio as gr
 import LLM_functions
 import question_list
-
+import RAG_vector_store
+import os
 
 # 单个题库内容展示
 def show_question_lists(questions):
@@ -12,14 +13,125 @@ def show_question_lists(questions):
     return "\n".join(content)
 
 
-
 ######################################
 #
 #            创建聊天界面  
 #
 ######################################
 
+# 创建文件导入界面
+# def create_input_file_interface():
+#     with gr.Blocks() as input_file_interface:
+#         gr.Markdown("## 📁 向量数据库文档导入工具")
+#         gr.Markdown("上传 `.pdf`, `.txt`, `.md`, `.docx` 文件，将其添加到 FAISS 向量数据库中。")
 
+#         # 明确指定所有参数
+#         file_input = gr.File(
+#             label="选择文件",
+#             file_types=[".pdf", ".txt", ".md", ".docx"],
+#             type="filepath",
+#             value=None  # 明确设置初始值
+#         )
+#         upload_button = gr.Button("📥 导入到数据库")
+#         output = gr.Textbox(
+#             label="状态信息", 
+#             interactive=False, 
+#             value="",  # 明确设置初始值
+#             lines=3    # 可选：设置显示行数
+#         )
+
+#         def safe_upload_file(file_obj):
+#             if file_obj is None:
+#                 return "⚠️ 请先上传一个文件。"
+#             try:
+#                 result = RAG_vector_store.add_new_documents_to_vector_store(file_obj.name)
+#                 return str(result) if result else "✅ 文件导入完成！"
+#             except Exception as e:
+#                 return f"❌ 导入失败：{str(e)}"
+
+#         upload_button.click(
+#             fn=safe_upload_file, 
+#             inputs=file_input, 
+#             outputs=output
+#         )
+
+#     return input_file_interface
+
+def create_input_file_interface():
+    with gr.Blocks(title="通过路径导入RAG数据库") as interface:
+        gr.Markdown("## 📂 向量数据库文档导入工具（路径版）")
+        gr.Markdown("输入本地文件路径（支持 `.pdf`, `.txt`, `.md`, `.docx`），将文件添加到FAISS向量数据库")
+        
+        # 文件路径输入框
+        file_path_input = gr.Textbox(
+            label="文件路径",
+            placeholder="例如：C:/documents/report.pdf 或 /home/user/data.txt",
+            lines=1
+        )
+        
+        # 格式提示
+        gr.Markdown("""
+        > 支持格式：.pdf, .txt, .md, .docx  
+        > 提示：路径需包含完整文件名和扩展名  
+        > Windows示例：D:/资料/技术文档.docx  
+        > Linux/Mac示例：/user/docs/notes.md
+        """)
+        
+        # 操作按钮和结果展示
+        with gr.Row():
+            import_btn = gr.Button("📥 导入到数据库", variant="primary")
+            clear_btn = gr.Button("🧹 清空输入", variant="secondary")
+        
+        result_output = gr.Textbox(
+            label="操作结果",
+            interactive=False,
+            lines=3,
+            placeholder="操作结果将显示在这里..."
+        )
+        
+        # 验证路径并导入
+        def import_by_path(file_path):
+            if not file_path:
+                return "⚠️ 请输入文件路径"
+            
+            # 基础路径验证
+            if not os.path.exists(file_path):
+                return f"❌ 路径不存在：{file_path}"
+            
+            if not os.path.isfile(file_path):
+                return f"❌ 不是有效文件：{file_path}"
+            
+            # 验证文件格式
+            valid_extensions = ('.pdf', '.txt', '.md', '.docx')
+            if not file_path.lower().endswith(valid_extensions):
+                return f"❌ 不支持的文件格式，仅支持：{valid_extensions}"
+            
+            # 调用导入函数
+            try:
+                result = RAG_vector_store.add_new_documents_to_vector_store(file_path)
+                return str(result) if result else f"✅ 成功导入文件：{os.path.basename(file_path)}"
+            except Exception as e:
+                return f"❌ 导入失败：{str(e)}"
+        
+        # 清空输入
+        def clear_input():
+            return "", ""
+        
+        # 绑定事件
+        import_btn.click(
+            fn=import_by_path,
+            inputs=[file_path_input],
+            outputs=[result_output]
+        )
+        
+        clear_btn.click(
+            fn=clear_input,
+            inputs=[],
+            outputs=[file_path_input, result_output]
+        )
+    
+    return interface
+    
 ##### 创建题库生成界面
 def create_generate_interface():
     with gr.Blocks() as generate_interface:
@@ -167,11 +279,41 @@ def create_main_interface():
         
         # 创建标签导航栏
         with gr.Tabs():
-            # 第一个标签：题库列表（demo1）
-            with gr.Tab("题库列表"):
-                create_question_list_interface()  # 嵌入demo1
-            
-            # 第二个标签：题库生成（demo2）
+            with gr.Tab("文件导入"):
+                create_input_file_interface()
+
             with gr.Tab("题库生成"):
-                create_generate_interface()  # 嵌入demo2
+                create_generate_interface() 
+
+            with gr.Tab("题库列表"):
+                create_question_list_interface()  
+            
+    return main_interface
+
+    with gr.Blocks(title="智选题库") as main_interface:
+        gr.Markdown("# 📋 智选题库管理系统 ")
+        
+        # 创建标签导航栏
+        with gr.Tabs():
+            with gr.Tab("文件导入"):
+                # 直接创建组件而不是嵌套Blocks
+                gr.Markdown("## 📁 向量数据库文档导入工具")
+                gr.Markdown("上传 `.pdf`, `.txt`, `.md`, `.docx` 文件，将其添加到 FAISS 向量数据库中。")
+
+                file_input = gr.File(
+                    label="选择文件",
+                    file_types=[".pdf", ".txt", ".md", ".docx"],
+                    type="filepath"
+                )
+                upload_button = gr.Button("📥 导入到数据库")
+                output = gr.Textbox(label="状态信息", interactive=False, value="")
+
+                upload_button.click(fn=upload_file, inputs=file_input, outputs=output)
+
+            with gr.Tab("题库生成"):
+                create_generate_interface()()
+
+            with gr.Tab("题库列表"):
+                create_question_list_interface()()
+            
     return main_interface
