@@ -35,10 +35,10 @@ def call_qwen(user_prompt="请介绍一下通义千问模型", system_prompt = N
 
 
 # 针对单次提问产生QA语句
-def generate_QA_once(content, model="qwen-turbo", api_key=os.environ.get("DASHSCOPE_API_KEY")):
+def generate_QA_once(content, n=1, model="qwen-turbo", api_key=os.environ.get("DASHSCOPE_API_KEY")):
 
-    system_prompt = """
-    请你担任题库生成助手，核心任务是根据用户输入的段落内容，自动生成指定数量1个的问题及对应的答案，具体要求如下：
+    system_prompt = f"""
+    请你担任题库生成助手，核心任务是根据用户输入的段落内容，自动生成 {n} 个的问题及对应的答案，具体要求如下：
     问题生成准则：
     需紧扣段落核心信息，涵盖段落中的关键概念、事实、逻辑关系等，避免生成与段落无关的问题。
     问题类型可多样化，包括但不限于事实询问（如 “什么是...？”“... 发生在何时？”）、细节理解（如 “... 的原因是什么？”“文中提到的... 具体指什么？”）、逻辑推理（如 “根据段落，... 会导致什么结果？”“为什么说...？”）等。
@@ -51,8 +51,8 @@ def generate_QA_once(content, model="qwen-turbo", api_key=os.environ.get("DASHSC
     输出格式要求：
     每个问题以 “Q：” 开头，紧随问题内容，之后换行。
     每个问题对应的答案以 “A：” 开头，紧随答案内容，之后换两行。
-    按上述格式依次呈现所有生成的 n 个问题及答案，确保条理清晰，便于用户查看和使用。
-    请严格遵循以上要求，当用户输入段落并指定 n 的值后，为其生成符合标准的 n 个问题及答案。
+    按上述格式依次呈现所有生成的 {n} 个问题及答案，确保条理清晰，便于用户查看和使用。
+    请严格遵循以上要求，当用户输入段落并指定 {n} 的值后，为其生成符合标准的 {n} 个问题及答案。
     """
 
     result = call_qwen(user_prompt = content, system_prompt=system_prompt, model=model, api_key=api_key)
@@ -60,14 +60,14 @@ def generate_QA_once(content, model="qwen-turbo", api_key=os.environ.get("DASHSC
 
 
 # 多次循环实现QA语句生成
-def generate_QA(keyword="阿里", nums=5, model="qwen-turbo", api_key=os.environ.get("DASHSCOPE_API_KEY"), question_type="QA"):
+def generate_QA(keyword="阿里", nums=5, n=1, model="qwen-turbo", api_key=os.environ.get("DASHSCOPE_API_KEY"), question_type="QA"):
 
     contents_to_generate_QA = RAG_vector_store.search_similar_documents(keyword, k=nums)
 
     results = []
 
     for i, doc in enumerate(contents_to_generate_QA):
-        result = generate_QA_once(doc.page_content, model=model, api_key=api_key)
+        result = generate_QA_once(doc.page_content, n=n, model=model, api_key=api_key)
         results.append(result)
 
     # 处理生成的QA语句

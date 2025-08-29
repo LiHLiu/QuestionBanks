@@ -134,51 +134,153 @@ def create_input_file_interface():
     return interface
     
 ##### 创建题库生成界面
+# def create_generate_interface():
+#     with gr.Blocks() as generate_interface:
+#         gr.Markdown("# Q&A生成器")
+#         gr.Markdown("根据关键词生成相关的Q&A列表")
+        
+#         with gr.Row():
+#             keyword = gr.Textbox(label="关键词", placeholder="请输入关键词")
+#             num_results = gr.Number(label="返回结果数量", value=5, step=1)
+#             model_name = gr.Textbox(label="模型名称", value="qwen-turbo", placeholder="请输入模型名称")
+        
+#         generate_btn = gr.Button("生成Q&A", variant="primary")
+        
+#         qa_output = gr.JSON(label="生成的Q&A列表")
+        
+#         save_btn = gr.Button("保存到题库", variant="secondary")
+#         save_status = gr.Textbox(label="保存状态", interactive=False)
+        
+#         generate_btn.click(
+#             fn=LLM_functions.generate_QA,
+#             inputs=[keyword, num_results, model_name],
+#             outputs=qa_output
+#         )
+        
+#         def save_qa_list(qa_data, keyword_text):
+#             if not qa_data: 
+#                 return "请先生成Q&A列表再保存"
+#             try:
+                
+#                 question_list.add_question_list(
+#                     existing_file_path="./question_list/question_lists.json", 
+#                     new_list_name=keyword_text,
+#                     new_qa_list=qa_data
+#                 )
+#                 return f"保存成功！已添加到题库:{keyword_text}"
+#             except Exception as e:
+#                 return f"保存失败：{str(e)}"
+        
+#         save_btn.click(
+#             fn=save_qa_list,
+#             inputs=[qa_output, keyword], 
+#             outputs=save_status
+#         )
+
+#     return generate_interface
+
+
 def create_generate_interface():
     with gr.Blocks() as generate_interface:
         gr.Markdown("# Q&A生成器")
-        gr.Markdown("根据关键词生成相关的Q&A列表")
+        gr.Markdown("分两步：1. 搜索关键词相关语段 2. 基于搜索结果生成Q&A")
         
+        # 存储搜索结果的隐藏状态（仅用于保存实际搜索数据）
+        search_results = gr.State(None)
+        
+        # 第一步：关键词搜索相关语段
+        gr.Markdown("## 1. 搜索关键词相关语段")
         with gr.Row():
-            keyword = gr.Textbox(label="关键词", placeholder="请输入关键词")
-            num_results = gr.Number(label="返回结果数量", value=5, step=1)
-            model_name = gr.Textbox(label="模型名称", value="qwen-turbo", placeholder="请输入模型名称")
+            search_keyword = gr.Textbox(label="搜索关键词", placeholder="请输入需要搜索的关键词/句子，例如：阿里云计算")
+            search_top_k = gr.Number(label="搜索结果数量（k）", value=4, step=1, minimum=1)
+            search_btn = gr.Button("🔍 执行搜索", variant="primary")
         
-        generate_btn = gr.Button("生成Q&A", variant="primary")
-        
-        qa_output = gr.JSON(label="生成的Q&A列表")
-        
-        save_btn = gr.Button("保存到题库", variant="secondary")
-        save_status = gr.Textbox(label="保存状态", interactive=False)
-        
-        generate_btn.click(
-            fn=LLM_functions.generate_QA,
-            inputs=[keyword, num_results, model_name],
-            outputs=qa_output
+        # 显示搜索到的语段
+        search_result_display = gr.HTML(
+            label="搜索到的相关语段", 
+            value="<div style='padding:10px; color:#666;'>请点击上方搜索按钮获取相关语段</div>"
         )
         
+        # 第二步：基于搜索结果生成Q&A（生成按钮设置为始终可点击）
+        gr.Markdown("## 2. 基于搜索结果生成Q&A")
+        with gr.Row():
+            qa_per_doc = gr.Number(label="每个语段生成QA数量", value=1, step=1, minimum=1)
+            model_name = gr.Textbox(label="模型名称", value="qwen-turbo", placeholder="请输入通义千问模型名称，如qwen-turbo")
+            generate_btn = gr.Button("📝 生成Q&A", variant="primary", interactive=True)  # 始终启用
+        
+        # Q&A输出和保存区域
+        qa_output = gr.JSON(label="生成的Q&A列表")
+        save_btn = gr.Button("💾 保存到题库", variant="secondary", interactive=False)
+        save_status = gr.Textbox(label="保存状态", interactive=False)
+        
+        # ---------------------- 1. 搜索按钮逻辑 ----------------------
+        def handle_search(query, k):
+            similar_docs = RAG_vector_store.search_similar_documents(query=query, k=int(k))
+            if not similar_docs or not query.strip():
+                return (
+                    "<div style='padding:10px; color:#ff4444;'>未找到相关语段，请检查关键词或增加搜索数量重试</div>",
+                    None
+                )
+            
+            html_content = "<div style='padding:10px;'>"
+            for i, doc in enumerate(similar_docs, 1):
+                content_preview = doc.page_content[:300] + "..." if len(doc.page_content) > 300 else doc.page_content
+                source = doc.metadata.get("source", "Unknown")
+                page = doc.metadata.get("page", "N/A")
+                html_content += f"""
+                <div style='margin-bottom:15px; padding:10px; border:1px solid #eee; border-radius:5px;'>
+                    <h4 style='margin:0; color:#2196F3;'>语段 {i}</h4>
+                    <p style='margin:5px 0;'><strong>来源文件：</strong>{source}</p>
+                    <p style='margin:5px 0;'><strong>页码：</strong>{page}</p>
+                    <p style='margin:5px 0;'><strong>内容预览：</strong>{content_preview}</p>
+                </div>
+                """
+            html_content += "</div>"
+            return html_content, similar_docs
+        
+        search_btn.click(
+            fn=handle_search,
+            inputs=[search_keyword, search_top_k],
+            outputs=[search_result_display, search_results]
+        )
+        
+        # ---------------------- 2. 生成Q&A按钮逻辑（始终可点击） ----------------------
+        generate_btn.click(
+            fn=LLM_functions.generate_QA,
+            inputs=[
+                search_keyword,
+                search_top_k,
+                qa_per_doc,
+                model_name
+            ],
+            outputs=qa_output
+        ).then(
+            fn=lambda qa_data: gr.Button.update(interactive=bool(qa_data)),
+            inputs=qa_output,
+            outputs=save_btn
+        )
+        
+        # ---------------------- 3. 保存按钮逻辑 ----------------------
         def save_qa_list(qa_data, keyword_text):
-            if not qa_data: 
+            if not qa_data:
                 return "请先生成Q&A列表再保存"
             try:
-                
                 question_list.add_question_list(
-                    existing_file_path="./question_list/question_lists.json", 
+                    existing_file_path="./question_list/question_lists.json",
                     new_list_name=keyword_text,
                     new_qa_list=qa_data
                 )
-                return f"保存成功！已添加到题库:{keyword_text}"
+                return f"保存成功！已添加到题库：{keyword_text}"
             except Exception as e:
                 return f"保存失败：{str(e)}"
         
         save_btn.click(
             fn=save_qa_list,
-            inputs=[qa_output, keyword], 
+            inputs=[qa_output, search_keyword],
             outputs=save_status
         )
 
     return generate_interface
-
 
 ##### 创建题库列表展示界面
 def create_question_list_interface():
@@ -291,30 +393,30 @@ def create_main_interface():
             
     return main_interface
 
-    with gr.Blocks(title="智选题库") as main_interface:
-        gr.Markdown("# 📋 智选题库管理系统 ")
+    # with gr.Blocks(title="智选题库") as main_interface:
+    #     gr.Markdown("# 📋 智选题库管理系统 ")
         
-        # 创建标签导航栏
-        with gr.Tabs():
-            with gr.Tab("文件导入"):
-                # 直接创建组件而不是嵌套Blocks
-                gr.Markdown("## 📁 向量数据库文档导入工具")
-                gr.Markdown("上传 `.pdf`, `.txt`, `.md`, `.docx` 文件，将其添加到 FAISS 向量数据库中。")
+    #     # 创建标签导航栏
+    #     with gr.Tabs():
+    #         with gr.Tab("文件导入"):
+    #             # 直接创建组件而不是嵌套Blocks
+    #             gr.Markdown("## 📁 向量数据库文档导入工具")
+    #             gr.Markdown("上传 `.pdf`, `.txt`, `.md`, `.docx` 文件，将其添加到 FAISS 向量数据库中。")
 
-                file_input = gr.File(
-                    label="选择文件",
-                    file_types=[".pdf", ".txt", ".md", ".docx"],
-                    type="filepath"
-                )
-                upload_button = gr.Button("📥 导入到数据库")
-                output = gr.Textbox(label="状态信息", interactive=False, value="")
+    #             file_input = gr.File(
+    #                 label="选择文件",
+    #                 file_types=[".pdf", ".txt", ".md", ".docx"],
+    #                 type="filepath"
+    #             )
+    #             upload_button = gr.Button("📥 导入到数据库")
+    #             output = gr.Textbox(label="状态信息", interactive=False, value="")
 
-                upload_button.click(fn=upload_file, inputs=file_input, outputs=output)
+    #             upload_button.click(fn=upload_file, inputs=file_input, outputs=output)
 
-            with gr.Tab("题库生成"):
-                create_generate_interface()()
+    #         with gr.Tab("题库生成"):
+    #             create_generate_interface()()
 
-            with gr.Tab("题库列表"):
-                create_question_list_interface()()
+    #         with gr.Tab("题库列表"):
+    #             create_question_list_interface()()
             
-    return main_interface
+    # return main_interface

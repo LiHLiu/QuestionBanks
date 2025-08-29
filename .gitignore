@@ -4,3 +4,5 @@
 /question_list/
 # 忽略 FAISS 索引文件
 /faiss_index/
+
+/技术报告/
