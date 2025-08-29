@@ -1,6 +1,8 @@
 
 # 智选题库 QuestionBanks
 
+![Visitor Badge](https://visitor-badge.laobi.icu/badge?page_id=LiHLiu.QuestionBanks)
+
 ## 项目简介
 
 智选题库（QuestionBanks）是一个智能题库管理与生成系统，支持多种格式的题库数据（txt、md、pdf、docx），集成 RAG 向量检索和 FAISS 索引，结合大模型自动生成问答，适用于教育、企业知识管理等场景。系统提供 Gradio 网页界面和 Jupyter Notebook 演示，便于交互和扩展。
